@@ -1,0 +1,81 @@
+/************************************************************************************************
+ * PROJECT: Funnel Analysis Database
+ * AUTHOR: David Asikpo
+ * DESCRIPTION:
+ * This script creates the database schema for an end-to-end funnel analysis project.
+ * It includes tables for leads, deals, sellers, orders, and order items.
+ * Relationships are defined using appropriate primary and foreign keys.
+ *
+ * TABLES:
+ * 1. marketing_qualified_leads   - Stores lead and campaign information.
+ * 2. closed_deals_dataset        - Contains leads that converted into sales.
+ * 3. sellers_dataset             - Information about sellers, location, and state.
+ * 4. order_items                 - Details of products in each order.
+ * 5. orders                      - Main order records linked to customers.
+ * 6. customers                   - Customer demographic information (to be created separately).
+ *
+ * NOTE:
+ * - Ensure that the 'customers' table exists before running this script.
+ * - All IDs are treated as VARCHAR for flexibility (UUID-style keys).
+ * - It Drops any database withthe name funnel_analysis
+ ************************************************************************************************/
+
+
+DROP DATABASE IF EXISTS funnel_analysis;
+CREATE DATABASE funnel_analysis;
+USE funnel_analysis;
+
+
+DROP TABLE IF EXISTS marketing_qualified_leads;
+CREATE TABLE IF NOT EXISTS marketing_qualified_leads (
+    mql_id VARCHAR(50) PRIMARY KEY,
+    first_contact_date DATE NOT NULL,
+    landing_page_id VARCHAR(50),
+    origin VARCHAR(100)
+);
+
+
+DROP TABLE IF EXISTS closed_deals_dataset;
+CREATE TABLE IF NOT EXISTS closed_deals_dataset (
+    mql_id VARCHAR(50),
+    first_contact_date DATE NOT NULL,
+    landing_page_id VARCHAR(50),
+    origin VARCHAR(100),
+    PRIMARY KEY (mql_id)
+);
+
+
+DROP TABLE IF EXISTS sellers_dataset;
+CREATE TABLE IF NOT EXISTS sellers_dataset (
+    seller_id VARCHAR(100) PRIMARY KEY,
+    seller_zip_code_prefix INT,
+    seller_city VARCHAR(100),
+    seller_state CHAR(2)
+);
+
+
+DROP TABLE IF EXISTS order_items;
+CREATE TABLE IF NOT EXISTS order_items (
+    order_id VARCHAR(100),
+    order_item_id INT,
+    product_id VARCHAR(100),
+    seller_id VARCHAR(100),
+    shipping_limit_date DATETIME,
+    price DECIMAL(10,2),
+    freight_value DECIMAL(10,2),
+    PRIMARY KEY (order_id, order_item_id)
+);
+
+
+DROP TABLE IF EXISTS orders;
+CREATE TABLE IF NOT EXISTS orders (
+    order_id VARCHAR(100) PRIMARY KEY,
+    customer_id VARCHAR(100),
+    order_status VARCHAR(20),
+    order_purchase_timestamp DATETIME,
+    order_approved_at DATETIME,
+    order_delivered_carrier_date DATETIME,
+    order_delivered_customer_date DATETIME,
+    order_estimated_delivery_date DATETIME
+);
+
