@@ -1,0 +1,129 @@
+/* 
+=============================================================
+🧹 DATA CLEANING SCRIPT FOR FUNNEL_ANALYSIS DATABASE
+=============================================================
+
+Author: David Asikpo  
+Project: Funnel Analysis (Olist Brazil Dataset)  
+Description:
+This SQL script performs data cleaning operations across multiple tables 
+in the `funnel_analysis` database to ensure consistency, accuracy, and 
+readiness for downstream analysis.  
+
+Key cleaning tasks include:
+ - Removing extra spaces and unwanted characters (e.g., quotation marks)
+ - Replacing empty strings with NULL or 'unknown'
+ - Dropping irrelevant columns
+ - Standardizing categorical values
+ - Preparing cleaned tables for joins and analytics
+
+Tables Cleaned:
+1. marketing_qualified_leads  
+2. closed_deals_dataset  
+3. order_items  
+4. orders  
+5. sellers_dataset  
+
+=============================================================
+*/
+
+-- =========================================================
+-- 🧩 1. CLEAN marketing_qualified_leads TABLE
+-- =========================================================
+-- Tasks:
+-- - Remove leading/trailing spaces from text columns
+-- - Replace blank origins with NULL values
+
+UPDATE funnel_analysis.marketing_qualified_leads
+SET 
+    mql_id = TRIM(mql_id),
+    landing_page_id = TRIM(landing_page_id),
+    origin = NULLIF(TRIM(origin), '');
+
+
+-- =========================================================
+-- 🧩 2. CLEAN closed_deals_dataset TABLE
+-- =========================================================
+-- Tasks:
+-- - Drop unused columns (has_company, has_gtin, average_stock)
+-- - Trim whitespace from IDs and text columns
+-- - Replace empty values with NULL or 'unknown'
+-- - Standardize lead_behaviour_profile and business_type categories
+
+ALTER TABLE funnel_analysis.closed_deals_dataset
+DROP has_company,
+DROP has_gtin,
+DROP average_stock;
+
+UPDATE funnel_analysis.closed_deals_dataset
+SET 
+    mql_id = TRIM(mql_id),
+    seller_id = TRIM(seller_id),
+    sdr_id = TRIM(sdr_id),
+    sr_id = TRIM(sr_id),
+    business_segment = NULLIF(TRIM(business_segment), ''),
+    lead_type = TRIM(lead_type),
+    lead_behaviour_profile = CASE 
+        WHEN lead_behaviour_profile = '"cat' THEN 'cat'
+        WHEN lead_behaviour_profile = '"eagle' THEN 'eagle' 
+        WHEN lead_behaviour_profile = '"shark' THEN 'shark' 
+        WHEN lead_behaviour_profile = '' THEN NULL 
+        ELSE lead_behaviour_profile 
+    END,
+    business_type = CASE 
+        WHEN business_type IN ('5-20', '200+', '50-200', '') THEN 'unknown'
+        ELSE business_type 
+    END;
+
+
+-- =========================================================
+-- 📦 3. CLEAN order_items TABLE
+-- =========================================================
+-- Tasks:
+-- - Remove unwanted quotes from order_id, product_id, and seller_id
+-- - Ensure IDs are consistent across joins
+
+UPDATE funnel_analysis.order_items
+SET 
+    order_id = REPLACE(order_id, '"', ''),
+    product_id = REPLACE(product_id, '"', ''),
+    seller_id = REPLACE(seller_id, '"', '')
+WHERE 
+    order_id LIKE '%"%' OR
+    product_id LIKE '%"%' OR 
+    seller_id LIKE '%"%' ;
+
+
+-- =========================================================
+-- 🧾 4. CLEAN orders TABLE
+-- =========================================================
+-- Tasks:
+-- - Remove extra quotes from IDs
+-- - Trim order_status values
+-- - Keep other date columns unchanged
+
+UPDATE funnel_analysis.orders
+SET 
+    order_id = REPLACE(order_id, '"', ''),
+    customer_id = REPLACE(customer_id, '"', ''),
+    order_status = TRIM(order_status)
+WHERE 
+    order_id LIKE '%"%' OR
+    customer_id LIKE '%"%' ;
+
+
+-- =========================================================
+-- 🏬 5. CLEAN sellers_dataset TABLE
+-- =========================================================
+-- Tasks:
+-- - Remove quotes from seller_id
+-- - Trim city and state fields
+-- - Ensure consistent text formatting for joining with order_items
+
+UPDATE funnel_analysis.sellers_dataset
+SET 
+    seller_id = REPLACE(seller_id, '"', ''),
+    seller_city = TRIM(seller_city),
+    seller_state = TRIM(seller_state)
+WHERE 
+    seller_id LIKE '%"%' ;
